@@ -8,8 +8,8 @@ const DEMO_USER_ID = 'user_1'
 
 // Reusable components
 function Card({ title, children, className='' }) {
-  return <div className={`bg-card/60 backdrop-blur-sm border border-border/60 rounded-xl p-4 flex flex-col gap-2 shadow-sm card-modern ${className}`}>
-    {title && <h3 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>}
+  return <div className={`card-modern p-4 flex flex-col gap-3 ${className}`}>
+    {title && <h3 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase opacity-70">{title}</h3>}
     {children}
   </div>
 }
@@ -42,10 +42,10 @@ function useAnimatedNumber(value, duration=600){
 
 function Stat({ label, value, note }) {
   const animated = useAnimatedNumber(typeof value === 'number'? value : value)
-  return <div className="flex flex-col">
-    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</span>
-    <span className="text-2xl font-semibold leading-tight tabular-nums transition-colors duration-300">{animated ?? '—'}{(typeof value==='string' && /%$/.test(value))? '' : ''}</span>
-    {note && <span className="text-xs text-muted-foreground mt-0.5">{note}</span>}
+  return <div className="flex flex-col group">
+    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold opacity-80 mb-1">{label}</span>
+    <span className="text-3xl font-bold leading-tight tabular-nums stat-accent bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">{animated ?? '—'}</span>
+    {note && <span className="text-xs text-muted-foreground mt-1 opacity-75">{note}</span>}
   </div>
 }
 
@@ -68,7 +68,15 @@ function Table({ columns, rows, keyField }) {
   </div>
 }
 
-const Pill = ({ children, tone='default' }) => <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${tone==='ok'?'bg-emerald-500/15 text-emerald-400':tone==='warn'?'bg-amber-500/15 text-amber-400':tone==='err'?'bg-red-500/15 text-red-400':'bg-muted text-muted-foreground'}`}>{children}</span>
+const Pill = ({ children, tone='default' }) => {
+  const toneClasses = {
+    'ok': 'status-done',
+    'warn': 'status-running', 
+    'err': 'status-error',
+    'default': 'status-queued'
+  }
+  return <span className={`status-indicator ${toneClasses[tone]}`}>{children}</span>
+}
 
 function sortableHeader(label,key,state,setState){
   const active = state.key===key
@@ -203,186 +211,229 @@ export default function App(){
   const filteredComp = search && backendComp? { backends: backendComp.backends.filter(b=> [b.name,b.status].some(x=> String(x).toLowerCase().includes(search))) } : backendComp
 
   return <div className="min-h-screen flex flex-col">
-    <header className="border-b border-border/60 px-6 py-3 flex flex-wrap gap-4 items-center justify-between glass sticky top-0 z-40">
+    <header className="glass sticky top-0 z-40 px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
       <div className="flex items-center gap-4">
-  <h1 className="text-lg font-semibold tracking-tight text-foreground">Quantum Unified Dashboard</h1>
-        {loading && <span className="text-xs text-muted-foreground">Loading...</span>}
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-blue-200 bg-clip-text text-transparent">⚛️ Quantum Dashboard</h1>
+        {loading && <span className="text-xs text-muted-foreground flex items-center gap-2">
+          <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin"></div>
+          Loading...
+        </span>}
+        {error && <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">{error}</span>}
       </div>
-      <div className="flex items-center gap-2 text-xs">
-        <input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="Search jobs, backends…" className="bg-muted/60 border border-border/60 rounded-md px-2 py-1 text-xs w-56" />
-  <button onClick={()=>{setRefreshTick(t=>t+1)}} className="btn-modern"><RefreshCw className="w-3.5 h-3.5"/>Refresh</button>
-        <label className="flex items-center gap-1 cursor-pointer select-none">
+      <div className="flex items-center gap-3 text-xs">
+        <input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="🔍 Search jobs, backends…" className="glass-subtle rounded-lg px-3 py-2 text-xs w-64 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+        <button onClick={()=>{setRefreshTick(t=>t+1)}} className="btn-modern"><RefreshCw className="w-3.5 h-3.5"/>Refresh</button>
+        <label className="flex items-center gap-2 cursor-pointer select-none text-muted-foreground">
           <input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)} className="accent-primary" /> Auto-refresh
         </label>
-  <span className="text-[11px] px-2 py-1 rounded bg-muted/40 border border-border/50">Dark Theme</span>
+        <span className="pill-soft">Modern Dark</span>
       </div>
     </header>
-    <main className="flex-1 overflow-y-auto p-6 space-y-6 compact-gap">
-      {globalSearch && <div className="text-[11px] text-muted-foreground">Filtering results for: <span className="text-foreground font-medium">{globalSearch}</span></div>}
+    <main className="flex-1 overflow-y-auto p-6 space-y-8">
+      {globalSearch && <div className="glass-subtle p-3 rounded-lg text-sm">
+        <span className="text-muted-foreground">🔍 Filtering results for:</span> 
+        <span className="text-primary font-semibold ml-2">{globalSearch}</span>
+      </div>}
+      
       {/* Overview Section */}
-      {openSections.overview && <section id="overview" className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Overview</h2>
-          <button onClick={()=>toggleSection('overview')} className="text-[11px] text-muted-foreground hover:text-foreground">Collapse</button>
+      {openSections.overview && <section id="overview" className="space-y-6">
+        <div className="section-header">
+          <h2 className="section-title">📊 System Overview</h2>
+          <button onClick={()=>toggleSection('overview')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
         </div>
         {dashboard && <>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            {loading ? Array.from({length:5}).map((_,i)=> <Card key={i}><div className="skeleton h-14 w-full"/></Card>) : <>
-              {myJobCount!=null && <Card><Stat label="My Jobs" value={myJobCount} note={"Of total " + dashboard.job_stats.total_jobs} /></Card>}
-              <Card><Stat label={myJobCount!=null? 'Public Jobs':'Total Jobs'} value={myJobCount!=null? (dashboard.job_stats.total_jobs - myJobCount): dashboard.job_stats.total_jobs} note={`Done ${dashboard.job_stats.completed_jobs} • Run ${dashboard.job_stats.running_jobs}`} /></Card>
-              <Card><Stat label="Queued" value={dashboard.job_stats.queued_jobs} note={`Error ${dashboard.job_stats.error_jobs}`}/></Card>
-              <Card><Stat label="Backends" value={dashboard.backend_stats.total_backends} note={`Op ${dashboard.backend_stats.operational_backends}`}/></Card>
-              <Card><Stat label="Avg Queue (s)" value={dashboard.job_stats.average_queue_time? Number(dashboard.job_stats.average_queue_time).toFixed(0)*1:0} note={`Exec ${(dashboard.job_stats.average_execution_time||0).toFixed?.(0)}s`} /></Card>
+          <div className="grid-auto-fit">
+            {loading ? Array.from({length:5}).map((_,i)=> <Card key={i}><div className="skeleton h-16 w-full"/></Card>) : <>
+              {myJobCount!=null && <Card><Stat label="My Jobs" value={myJobCount} note={`Of ${dashboard.job_stats.total_jobs} total`} /></Card>}
+              <Card><Stat label={myJobCount!=null? 'Public Jobs':'Total Jobs'} value={myJobCount!=null? (dashboard.job_stats.total_jobs - myJobCount): dashboard.job_stats.total_jobs} note={`✅ ${dashboard.job_stats.completed_jobs} • 🏃 ${dashboard.job_stats.running_jobs}`} /></Card>
+              <Card><Stat label="Queued Jobs" value={dashboard.job_stats.queued_jobs} note={`❌ ${dashboard.job_stats.error_jobs} errors`}/></Card>
+              <Card><Stat label="Backends" value={dashboard.backend_stats.total_backends} note={`🟢 ${dashboard.backend_stats.operational_backends} active`}/></Card>
+              <Card><Stat label="Avg Queue Time" value={dashboard.job_stats.average_queue_time? Number(dashboard.job_stats.average_queue_time).toFixed(0)*1:0} note={`⚡ ${(dashboard.job_stats.average_execution_time||0).toFixed?.(1)}s exec`} /></Card>
             </>}
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-wide">Recent Jobs {search && <span className='text-muted-foreground font-normal'>(filtered)</span>}</h3>
-              <span className="text-[10px] text-muted-foreground">Showing {filteredRecentJobs?.length || 0}</span>
+          <div className="space-y-4">
+            <div className="subsection-title">
+              <span>⏱️ Recent Activity</span>
+              {search && <span className='text-muted-foreground font-normal text-sm'>(filtered)</span>}
+              <span className="ml-auto text-xs text-muted-foreground">{filteredRecentJobs?.length || 0} jobs</span>
             </div>
-            <div className="max-h-60 overflow-auto rounded-lg border border-border/50 compact-table"> 
-              <Table keyField="job_id" rows={loading? []: filteredRecentJobs} columns={[
-                { key:'job_id', header:'ID', render: r=> <code className="text-[11px] font-mono">{r.job_id}</code> },
-                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
-                { key:'backend_name', header:'Backend' },
-                { key:'shots', header:'Shots' },
-                { key:'created_at', header:'Created', render: r=> timeAgo(r.created_at) },
-              ]} />
-              {loading && <div className="p-4 space-y-2">{Array.from({length:6}).map((_,i)=><div key={i} className="skeleton h-6 w-full"/> )}</div>}
+            <div className="table-wrapper"> 
+              <div className="compact-table">
+                <Table keyField="job_id" rows={loading? []: filteredRecentJobs} columns={[
+                  { key:'job_id', header:'Job ID', render: r=> <code className="text-[11px] font-mono bg-muted/30 px-1 py-0.5 rounded">{r.job_id}</code> },
+                  { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
+                  { key:'backend_name', header:'Backend', render: r=> <span className="font-medium">{r.backend_name}</span> },
+                  { key:'shots', header:'Shots', render: r=> <span className="tabular-nums">{r.shots?.toLocaleString()}</span> },
+                  { key:'created_at', header:'Created', render: r=> <span className="text-muted-foreground">{timeAgo(r.created_at)}</span> },
+                ]} />
+                {loading && <div className="p-6 space-y-3">{Array.from({length:6}).map((_,i)=><div key={i} className="skeleton h-8 w-full"/> )}</div>}
+              </div>
             </div>
           </div>
         </>}
       </section>}
 
       {/* Backends Section */}
-      {openSections.backends && <section id="backends" className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Backends</h2>
-          <button onClick={()=>toggleSection('backends')} className="text-[11px] text-muted-foreground hover:text-foreground">Collapse</button>
+      {openSections.backends && <section id="backends" className="space-y-6">
+        <div className="section-header">
+          <h2 className="section-title">🖥️ Quantum Backends</h2>
+          <button onClick={()=>toggleSection('backends')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
         </div>
-        {backendStats && <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>{loading? <div className="skeleton h-14"/>:<Stat label="Total" value={backendStats.total_backends} note={`Op ${backendStats.operational_backends}`} />}</Card>
-          <Card>{loading? <div className="skeleton h-14"/>:<Stat label="Qubits" value={backendStats.total_qubits} note={`Avg Q ${(backendStats.average_qubits||0).toFixed(1)}`} />}</Card>
-          <Card>{loading? <div className="skeleton h-14"/>:<Stat label="Pending" value={backendStats.total_pending_jobs} note={`Queues ${backendStats.backends_with_queues}`} />}</Card>
-          <Card>{loading? <div className="skeleton h-14"/>:<Stat label="Sim / Real" value={backendStats.simulators} note={`Real ${backendStats.real_devices}`} />}</Card>
+        {backendStats && <div className="grid-auto-fit">
+          <Card>{loading? <div className="skeleton h-16"/>:<Stat label="Total Backends" value={backendStats.total_backends} note={`🟢 ${backendStats.operational_backends} operational`} />}</Card>
+          <Card>{loading? <div className="skeleton h-16"/>:<Stat label="Total Qubits" value={backendStats.total_qubits} note={`📊 ${(backendStats.average_qubits||0).toFixed(1)} avg per backend`} />}</Card>
+          <Card>{loading? <div className="skeleton h-16"/>:<Stat label="Pending Jobs" value={backendStats.total_pending_jobs} note={`📋 ${backendStats.backends_with_queues} backends with queues`} />}</Card>
+          <Card>{loading? <div className="skeleton h-16"/>:<Stat label="Simulators" value={backendStats.simulators} note={`⚡ ${backendStats.real_devices} real devices`} />}</Card>
         </div>}
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold tracking-wide">Backends {search && <span className='text-muted-foreground font-normal'>(filtered)</span>}</h3>
-            <span className="text-[10px] text-muted-foreground">{filteredBackends.length} items</span>
+            <div className="subsection-title">
+              <span>🔧 Backend Details</span>
+              {search && <span className='text-muted-foreground font-normal text-sm'>(filtered)</span>}
+            </div>
+            <span className="text-xs text-muted-foreground">{filteredBackends.length} backends</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span>Page {backendPageSafe}/{backendTotalPages}</span>
-            <div className="flex gap-1">
-              <button disabled={backendPageSafe<=1} onClick={()=>setBackendPage(p=>Math.max(1,p-1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Prev</button>
-              <button disabled={backendPageSafe>=backendTotalPages} onClick={()=>setBackendPage(p=>Math.min(backendTotalPages,p+1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Next</button>
+          <div className="pagination-controls">
+            <span>Page {backendPageSafe} of {backendTotalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={backendPageSafe<=1} onClick={()=>setBackendPage(p=>Math.max(1,p-1))} className="pagination-btn">← Prev</button>
+              <button disabled={backendPageSafe>=backendTotalPages} onClick={()=>setBackendPage(p=>Math.min(backendTotalPages,p+1))} className="pagination-btn">Next →</button>
             </div>
           </div>
-          <div className="max-h-64 overflow-auto rounded-lg border border-border/50 compact-table">
-            <Table keyField="name" rows={backendSlice} columns={[
-              { key:'name', header: sortableHeader('Name','name',backendSort,setBackendSort) },
-              { key:'n_qubits', header: sortableHeader('Qubits','n_qubits',backendSort,setBackendSort) },
-              { key:'status', header: sortableHeader('Status','status',backendSort,setBackendSort) },
-              { key:'simulator', header:'Type', render: r=> r.simulator?'Sim':'Real' },
-              { key:'pending_jobs', header: sortableHeader('Pending','pending_jobs',backendSort,setBackendSort) },
-            ]} />
-            {loading && <div className="p-4 space-y-2">{Array.from({length:8}).map((_,i)=><div key={i} className="skeleton h-6"/> )}</div>}
+          <div className="table-wrapper">
+            <div className="compact-table">
+              <Table keyField="name" rows={backendSlice} columns={[
+                { key:'name', header: sortableHeader('Backend Name','name',backendSort,setBackendSort), render: r=> <span className="font-mono text-primary">{r.name}</span> },
+                { key:'n_qubits', header: sortableHeader('Qubits','n_qubits',backendSort,setBackendSort), render: r=> <span className="font-bold tabular-nums">{r.n_qubits}</span> },
+                { key:'status', header: sortableHeader('Status','status',backendSort,setBackendSort), render: r=> <Pill tone={r.status==='available'?'ok':'default'}>{r.status}</Pill> },
+                { key:'simulator', header:'Type', render: r=> <span className={`pill-soft ${r.simulator?'text-info':'text-warning'}`}>{r.simulator?'🖥️ Sim':'⚛️ Real'}</span> },
+                { key:'pending_jobs', header: sortableHeader('Queue','pending_jobs',backendSort,setBackendSort), render: r=> <span className="tabular-nums">{r.pending_jobs}</span> },
+              ]} />
+              {loading && <div className="p-6 space-y-3">{Array.from({length:8}).map((_,i)=><div key={i} className="skeleton h-8"/> )}</div>}
+            </div>
           </div>
         </div>
       </section>}
 
       {/* Jobs Section */}
-      {openSections.jobs && <section id="jobs" className="space-y-5">
-        <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Jobs</h2>
-          <select value={jobsFilters.status} onChange={e=> setFilter('status', e.target.value)} className="bg-muted border border-border rounded-md px-2 py-1 text-xs">
-            <option value="">All Statuses</option>
-            {['RUNNING','QUEUED','DONE','ERROR','CANCELLED'].map(s=> <option key={s}>{s}</option>)}
-          </select>
-          <input value={jobsFilters.backend} onChange={e=> setFilter('backend', e.target.value)} placeholder="Backend" className="bg-muted border border-border rounded-md px-2 py-1 text-xs" />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">Page {jobsPage?.page} / {jobsPage?.pages}</div>
-          <div className="flex gap-2">
-            <button disabled={!jobsPage || jobsFilters.page<=1} onClick={()=> setJobsFilters(f=>({...f, page:f.page-1}))} className="px-2 py-1 rounded-md bg-muted/70 text-xs disabled:opacity-30">Prev</button>
-            <button disabled={!jobsPage || jobsFilters.page>=jobsPage.pages} onClick={()=> setJobsFilters(f=>({...f, page:f.page+1}))} className="px-2 py-1 rounded-md bg-muted/70 text-xs disabled:opacity-30">Next</button>
+      {openSections.jobs && <section id="jobs" className="space-y-6">
+        <div className="section-header">
+          <div className="flex items-center gap-3">
+            <h2 className="section-title">📋 Job Management</h2>
+            <div className="flex items-center gap-2">
+              <select value={jobsFilters.status} onChange={e=> setFilter('status', e.target.value)} className="glass-subtle rounded-md px-3 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <option value="">All Statuses</option>
+                {['RUNNING','QUEUED','DONE','ERROR','CANCELLED'].map(s=> <option key={s}>{s}</option>)}
+              </select>
+              <input value={jobsFilters.backend} onChange={e=> setFilter('backend', e.target.value)} placeholder="Filter by backend" className="glass-subtle rounded-md px-3 py-1 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            </div>
           </div>
-          <button onClick={()=>toggleSection('jobs')} className="ml-auto text-[11px] text-muted-foreground hover:text-foreground">Collapse</button>
+          <button onClick={()=>toggleSection('jobs')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
         </div>
-        {jobsPage && <div className="max-h-[460px] overflow-auto rounded-lg border border-border/50 relative compact-table">
-          <Table keyField="job_id" rows={jobsPage.items} columns={[
-            { key:'job_id', header:'ID', render: r=> <code className="text-[11px] font-mono">{r.job_id}</code> },
-            { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
-            { key:'backend_name', header:'Backend' },
-            { key:'shots', header:'Shots' },
-            { key:'queue_time', header:'Queue (s)' },
-            { key:'run_time', header:'Run (s)' },
-            { key:'created_at', header:'Created', render: r=> timeAgo(r.created_at) },
-          ]} />
-          {!jobsPage.items?.length && loading && <div className="p-4 space-y-2">{Array.from({length:12}).map((_,i)=><div key={i} className="skeleton h-6"/> )}</div>}
+        {jobsPage && <div className="space-y-4">
+          <div className="pagination-controls">
+            <span>Page {jobsPage.page} of {jobsPage.pages}</span>
+            <div className="flex gap-2">
+              <button disabled={jobsFilters.page<=1} onClick={()=> setJobsFilters(f=>({...f, page:f.page-1}))} className="pagination-btn">← Prev</button>
+              <button disabled={jobsFilters.page>=jobsPage.pages} onClick={()=> setJobsFilters(f=>({...f, page:f.page+1}))} className="pagination-btn">Next →</button>
+            </div>
+          </div>
+          <div className="table-wrapper">
+            <div className="compact-table">
+              <Table keyField="job_id" rows={jobsPage.items} columns={[
+                { key:'job_id', header:'Job ID', render: r=> <code className="text-[11px] font-mono bg-muted/30 px-1 py-0.5 rounded">{r.job_id}</code> },
+                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
+                { key:'backend_name', header:'Backend', render: r=> <span className="font-medium text-primary">{r.backend_name}</span> },
+                { key:'shots', header:'Shots', render: r=> <span className="tabular-nums font-medium">{r.shots?.toLocaleString()}</span> },
+                { key:'queue_time', header:'Queue Time', render: r=> <span className="tabular-nums text-muted-foreground">{r.queue_time}s</span> },
+                { key:'run_time', header:'Runtime', render: r=> <span className="tabular-nums text-muted-foreground">{r.run_time}s</span> },
+                { key:'created_at', header:'Created', render: r=> <span className="text-muted-foreground">{timeAgo(r.created_at)}</span> },
+              ]} />
+              {!jobsPage.items?.length && loading && <div className="p-6 space-y-3">{Array.from({length:12}).map((_,i)=><div key={i} className="skeleton h-8"/> )}</div>}
+            </div>
+          </div>
         </div>}
       </section>}
 
       {/* Queue Section */}
-      {openSections.queue && <section id="queue" className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Queue</h2>
-          <button onClick={()=>toggleSection('queue')} className="text-[11px] text-muted-foreground hover:text-foreground">Collapse</button>
+      {openSections.queue && <section id="queue" className="space-y-6">
+        <div className="section-header">
+          <h2 className="section-title">📊 Queue Status</h2>
+          <button onClick={()=>toggleSection('queue')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
         </div>
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>Page {queuePageSafe}/{queueTotalPages}</span>
-          <div className="flex gap-1">
-            <button disabled={queuePageSafe<=1} onClick={()=>setQueuePage(p=>Math.max(1,p-1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Prev</button>
-            <button disabled={queuePageSafe>=queueTotalPages} onClick={()=>setQueuePage(p=>Math.min(queueTotalPages,p+1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Next</button>
+        <div className="space-y-4">
+          <div className="pagination-controls">
+            <span>Page {queuePageSafe} of {queueTotalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={queuePageSafe<=1} onClick={()=>setQueuePage(p=>Math.max(1,p-1))} className="pagination-btn">← Prev</button>
+              <button disabled={queuePageSafe>=queueTotalPages} onClick={()=>setQueuePage(p=>Math.min(queueTotalPages,p+1))} className="pagination-btn">Next →</button>
+            </div>
           </div>
-        </div>
-        <div className="max-h-64 overflow-auto rounded-lg border border-border/50 compact-table">
-        <Table keyField="backend_name" rows={queueSlice} columns={[
-          { key:'backend_name', header:'Backend', render: r=> <code className="text-[11px] font-mono">{r.backend_name}</code> },
-          { key:'queue_length', header: sortableHeader('Queue','queue_length',queueSort,setQueueSort) },
-          { key:'pending_jobs', header: sortableHeader('Pending','pending_jobs',queueSort,setQueueSort) },
-          { key:'running_jobs', header: sortableHeader('Running','running_jobs',queueSort,setQueueSort) },
-          { key:'average_wait_time', header: sortableHeader('Avg Wait','average_wait_time',queueSort,setQueueSort) },
-          { key:'estimated_wait_time', header: sortableHeader('Est Wait','estimated_wait_time',queueSort,setQueueSort) },
-          { key:'status', header:'Status' },
-        ]} />
-        {loading && <div className="p-4 space-y-2">{Array.from({length:8}).map((_,i)=><div key={i} className="skeleton h-6"/> )}</div>}
+          <div className="table-wrapper">
+            <div className="compact-table">
+              <Table keyField="backend_name" rows={queueSlice} columns={[
+                { key:'backend_name', header:'Backend', render: r=> <code className="text-[11px] font-mono text-primary">{r.backend_name}</code> },
+                { key:'queue_length', header: sortableHeader('Queue Length','queue_length',queueSort,setQueueSort), render: r=> <span className="font-bold tabular-nums">{r.queue_length}</span> },
+                { key:'pending_jobs', header: sortableHeader('Pending','pending_jobs',queueSort,setQueueSort), render: r=> <span className="tabular-nums">{r.pending_jobs}</span> },
+                { key:'running_jobs', header: sortableHeader('Running','running_jobs',queueSort,setQueueSort), render: r=> <span className="tabular-nums text-warning">{r.running_jobs}</span> },
+                { key:'average_wait_time', header: sortableHeader('Avg Wait','average_wait_time',queueSort,setQueueSort), render: r=> <span className="tabular-nums text-muted-foreground">{r.average_wait_time}s</span> },
+                { key:'estimated_wait_time', header: sortableHeader('Est Wait','estimated_wait_time',queueSort,setQueueSort), render: r=> <span className="tabular-nums text-muted-foreground">{r.estimated_wait_time}s</span> },
+                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='available'?'ok':'default'}>{r.status}</Pill> },
+              ]} />
+              {loading && <div className="p-6 space-y-3">{Array.from({length:8}).map((_,i)=><div key={i} className="skeleton h-8"/> )}</div>}
+            </div>
+          </div>
         </div>
       </section>}
 
       {/* Analytics Section */}
-      {openSections.analytics && <section id="analytics" className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h2>
-          <button onClick={()=>toggleSection('analytics')} className="text-[11px] text-muted-foreground hover:text-foreground">Collapse</button>
+      {openSections.analytics && <section id="analytics" className="space-y-6">
+        <div className="section-header">
+          <h2 className="section-title">📈 Analytics & Insights</h2>
+          <button onClick={()=>toggleSection('analytics')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
         </div>
-        {perf && <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <Card><Stat label="Success %" value={perf.success_rate} note={`Avail ${perf.system_availability}%`} /></Card>
-          <Card><Stat label="Avg Queue" value={perf.average_queue_time} note="s" /></Card>
-          <Card><Stat label="Avg Exec" value={perf.average_execution_time} note="s" /></Card>
-          <Card><Stat label="Quantum Time" value={perf.total_quantum_time} note="accumulated" /></Card>
+        {perf && <div className="space-y-6">
+          <div>
+            <div className="subsection-title">⚡ Performance Metrics</div>
+            <div className="grid-auto-fit">
+              <Card><Stat label="Success Rate" value={`${perf.success_rate}%`} note={`🟢 ${perf.system_availability}% system availability`} /></Card>
+              <Card><Stat label="Avg Queue Time" value={`${perf.average_queue_time}s`} note="⏱️ time in queue" /></Card>
+              <Card><Stat label="Avg Execution" value={`${perf.average_execution_time}s`} note="⚡ processing time" /></Card>
+              <Card><Stat label="Quantum Time" value={perf.total_quantum_time} note="🔬 total accumulated" /></Card>
+            </div>
+          </div>
         </div>}
-        {statusDist && <Card title="Status Distribution">
+        {statusDist && <Card title="📊 Job Status Distribution" className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {statusDist.distribution?.map(d=> <Pill key={d.status}>{d.status}: {d.count} ({d.percentage.toFixed(1)}%)</Pill>)}
+            {statusDist.distribution?.map(d=> <div key={d.status} className="pill-soft flex items-center gap-2">
+              <span>{d.status}</span>
+              <span className="font-bold">{d.count}</span>
+              <span className="text-muted-foreground">({d.percentage.toFixed(1)}%)</span>
+            </div>)}
           </div>
         </Card>}
-        {filteredComp && <div className="space-y-2">
-          <h3 className="text-sm font-semibold tracking-wide">Backend Comparison</h3>
-          <div className="max-h-64 overflow-auto rounded-lg border border-border/50 compact-table">
-          <Table keyField="name" rows={filteredComp.backends?.slice(0,80) || []} columns={[
-            { key:'name', header:'Name', render: r=> <code className="text-[11px] font-mono">{r.name}</code> },
-            { key:'n_qubits', header:'Qubits' },
-            { key:'status', header:'Status' },
-            { key:'simulator', header:'Type', render: r=> r.simulator?'Sim':'Real' },
-            { key:'job_count', header:'Jobs' },
-            { key:'total_shots', header:'Shots' },
-            { key:'pending_jobs', header:'Pending' },
-            { key:'estimated_wait_time', header:'Est Wait' },
-          ]} />
+        {filteredComp && <div className="space-y-4">
+          <div className="subsection-title">🔍 Backend Comparison</div>
+          <div className="table-wrapper">
+            <div className="compact-table">
+              <Table keyField="name" rows={filteredComp.backends?.slice(0,50) || []} columns={[
+                { key:'name', header:'Backend', render: r=> <code className="text-[11px] font-mono text-primary">{r.name}</code> },
+                { key:'n_qubits', header:'Qubits', render: r=> <span className="font-bold tabular-nums">{r.n_qubits}</span> },
+                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='available'?'ok':'default'}>{r.status}</Pill> },
+                { key:'simulator', header:'Type', render: r=> <span className={`pill-soft ${r.simulator?'text-info':'text-warning'}`}>{r.simulator?'🖥️ Sim':'⚛️ Real'}</span> },
+                { key:'job_count', header:'Jobs', render: r=> <span className="tabular-nums">{r.job_count}</span> },
+                { key:'total_shots', header:'Total Shots', render: r=> <span className="tabular-nums">{r.total_shots?.toLocaleString()}</span> },
+                { key:'pending_jobs', header:'Queue', render: r=> <span className="tabular-nums">{r.pending_jobs}</span> },
+                { key:'estimated_wait_time', header:'Est Wait', render: r=> <span className="tabular-nums text-muted-foreground">{r.estimated_wait_time}s</span> },
+              ]} />
+            </div>
           </div>
         </div>}
       </section>}
     </main>
-    <footer className="px-6 py-4 text-[10px] text-muted-foreground border-t border-border">IBM Quantum Jobs Monitor • Single Page View</footer>
+    <footer className="glass-subtle px-6 py-3 text-xs text-muted-foreground flex items-center justify-between">
+      <span>⚛️ Quantum Jobs Monitor • Enhanced Dashboard v2.0</span>
+      <span className="text-primary">Built with React + Tailwind</span>
+    </footer>
   </div>
 }
