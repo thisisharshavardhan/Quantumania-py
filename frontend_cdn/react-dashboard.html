@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quantum Dashboard - React</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- React CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:#0c0f17; color:#e2e8f0; }
+    .layout { display:flex; height:100vh; }
+    .sidebar { width:240px; background:#111827; border-right:1px solid #1f2937; display:flex; flex-direction:column; }
+    .sidebar h1 { font-size:16px; font-weight:600; padding:16px 20px; margin:0; letter-spacing:.5px; }
+    .nav { flex:1; overflow-y:auto; }
+    .nav button { width:100%; background:transparent; border:0; color:#94a3b8; text-align:left; padding:12px 20px; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:8px; }
+    .nav button.active, .nav button:hover { background:#1e2533; color:#f8fafc; }
+    .content { flex:1; overflow-y:auto; padding:24px 36px 64px; }
+    h2 { margin:0 0 16px; font-size:20px; font-weight:600; letter-spacing:.5px; }
+    .grid { display:grid; gap:16px; }
+    .grid.cols-2 { grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); }
+    .grid.cols-3 { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+    .grid.cols-4 { grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px 18px 18px; position:relative; display:flex; flex-direction:column; gap:8px; }
+    .card h3 { margin:0; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#94a3b8; }
+    .stat { font-size:26px; font-weight:600; line-height:1.1; letter-spacing:.5px; }
+    .muted { color:#64748b; font-size:12px; }
+    .badge { display:inline-flex; align-items:center; gap:4px; background:#1e293b; padding:4px 8px; border-radius:999px; font-size:11px; color:#e2e8f0; font-weight:500; }
+    .status-up { background:#064e3b; color:#34d399; }
+    .status-down { background:#4c0519; color:#fb7185; }
+    table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px; }
+    th, td { padding:8px 10px; border-bottom:1px solid #1e293b; text-align:left; vertical-align:top; }
+    th { font-weight:600; font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:#94a3b8; }
+    tbody tr:hover { background:#1e2533; }
+    code { font-size:12px; background:#1e293b; padding:2px 6px; border-radius:6px; }
+    .flex { display:flex; gap:12px; flex-wrap:wrap; }
+    .spacer { flex: 1; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { background:#1e293b; padding:4px 8px; border-radius:6px; font-size:11px; }
+    .section { margin-top:32px; }
+    .loader { width:42px; aspect-ratio:1; border-radius:50%; border:5px solid #1e293b; border-top-color:#3b82f6; animation:spin 1s linear infinite; margin:60px auto; }
+    @keyframes spin { to { transform:rotate(360deg);} }
+    a { color:#3b82f6; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    input, select { background:#0f172a; border:1px solid #1e293b; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:13px; }
+    input:focus, select:focus { outline:2px solid #3b82f6; outline-offset:0; }
+    button.action { background:#2563eb; color:#fff; border:0; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:500; cursor:pointer; }
+    button.action:hover { background:#1d4ed8; }
+    button.action:disabled { background:#1e293b; color:#94a3b8; cursor:not-allowed; }
+    .pill { background:#1e293b; padding:2px 8px; border-radius:999px; font-size:11px; }
+    .warning { color:#fb7185; }
+    .good { color:#34d399; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .scroll-x { overflow-x:auto; }
+    .chart-container { height: 250px; margin: 16px 0; }
+    .status-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+    .status-running { background: #0284c7; color: #e0f2fe; }
+    .status-queued { background: #9333ea; color: #f3e8ff; }
+    .status-done { background: #16a34a; color: #dcfce7; }
+    .status-error { background: #dc2626; color: #fee2e2; }
+    .status-cancelled { background: #525252; color: #f5f5f5; }
+    .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid #1e293b; }
+    .tab { padding: 8px 16px; cursor: pointer; font-size: 14px; color: #94a3b8; border-bottom: 2px solid transparent; }
+    .tab:hover { color: #f8fafc; }
+    .tab.active { color: #3b82f6; border-color: #3b82f6; }
+    .tooltip { position: absolute; background: #1e293b; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 12px; z-index: 10; }
+    .job-details-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal-content { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .close-button { background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 20px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+    const API_BASE = location.origin.includes('localhost') ? 'http://localhost:8000/api/v1' : '/api/v1';
+
+    // Utility functions
+    const formatNumber = (n) => {
+      if (n == null) return '—';
+      if (typeof n === 'number') {
+        if (Math.abs(n) > 1000) return n.toLocaleString();
+        return n;
+      }
+      return n;
+    };
+
+    const relativeTime = (ts) => {
+      if (!ts) return '';
+      try {
+        const d = new Date(ts);
+        const diff = (Date.now() - d.getTime()) / 1000;
+        if (diff < 60) return Math.floor(diff) + 's ago';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        return d.toLocaleDateString();
+      } catch (e) {
+        return ts;
+      }
+    };
+
+    const debounce = (fn, delay) => {
+      let timer = null;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    };
+
+    // Status Pill Component
+    const StatusPill = ({ status }) => {
+      const statusClass = `status-pill status-${status?.toLowerCase()}`;
+      return <span className={statusClass}>{status}</span>;
+    };
+
+    // Card Component
+    const Card = ({ title, children }) => (
+      <div className="card">
+        <h3>{title}</h3>
+        {children}
+      </div>
+    );
+
+    // Loader Component
+    const Loader = () => <div className="loader"></div>;
+
+    // Error Display Component
+    const ErrorDisplay = ({ message }) => (
+      <div className="card">
+        <div className="warning">Error: {message}</div>
+      </div>
+    );
+
+    // AsyncData is a wrapper component for data fetching
+    const AsyncData = ({ loading, error, data, children }) => {
+      if (loading) return <Loader />;
+      if (error) return <ErrorDisplay message={error} />;
+      if (!data) return <div className="muted">No data available</div>;
+      return children(data);
+    };
+
+    // Table Component
+    const Table = ({ columns, data, rowKey = "id" }) => (
+      <div className="scroll-x">
+        <table>
+          <thead>
+            <tr>
+              {columns.map((col, i) => (
+                <th key={i}>{col.header}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={row[rowKey] || i}>
+                {columns.map((col, j) => (
+                  <td key={j}>{col.render ? col.render(row) : row[col.accessor]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+
+    // Chart Component
+    const ChartComponent = ({ type, data, options }) => {
+      const chartRef = useRef(null);
+      const chartInstance = useRef(null);
+
+      useEffect(() => {
+        if (!chartRef.current) return;
+
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+
+        const ctx = chartRef.current.getContext("2d");
+        chartInstance.current = new Chart(ctx, {
+          type,
+          data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  color: '#e2e8f0'
+                }
+              },
+              tooltip: {
+                bodyFont: {
+                  size: 13
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: '#94a3b8'
+                },
+                grid: {
+                  color: '#1e293b',
+                  borderColor: '#1e293b'
+                }
+              },
+              y: {
+                ticks: {
+                  color: '#94a3b8'
+                },
+                grid: {
+                  color: '#1e293b',
+                  borderColor: '#1e293b'
+                }
+              }
+            },
+            ...options
+          }
+        });
+
+        return () => {
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+            chartInstance.current = null;
+          }
+        };
+      }, [chartRef, data, type, options]);
+
+      return (
+        <div className="chart-container">
+          <canvas ref={chartRef}></canvas>
+        </div>
+      );
+    };
+
+    // Job Details Modal Component
+    const JobDetailsModal = ({ job, onClose }) => {
+      if (!job) return null;
+      
+      return (
+        <div className="job-details-modal" onClick={onClose}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Job Details</h2>
+              <button className="close-button" onClick={onClose}>×</button>
+            </div>
+            <div className="grid cols-2">
+              <Card title="Basic Information">
+                <div><span className="muted">Job ID:</span> <code className="mono">{job.job_id}</code></div>
+                <div><span className="muted">Status:</span> <StatusPill status={job.status} /></div>
+                <div><span className="muted">Created:</span> {new Date(job.created_at).toLocaleString()}</div>
+                <div><span className="muted">Updated:</span> {job.updated_at ? new Date(job.updated_at).toLocaleString() : '—'}</div>
+              </Card>
+              <Card title="Execution Details">
+                <div><span className="muted">Backend:</span> <code>{job.backend_name || '—'}</code></div>
+                <div><span className="muted">Shots:</span> {formatNumber(job.shots)}</div>
+                <div><span className="muted">Queue Time:</span> {job.queue_time ? `${job.queue_time}s` : '—'}</div>
+                <div><span className="muted">Run Time:</span> {job.run_time ? `${job.run_time}s` : '—'}</div>
+              </Card>
+            </div>
+            <div className="section">
+              <Card title="Additional Data">
+                <pre style={{ fontSize: '12px', overflow: 'auto', maxHeight: '200px' }}>
+                  {JSON.stringify(job, null, 2)}
+                </pre>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Individual Tab Components
+    const OverviewTab = () => {
+      const [data, setData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [selectedJob, setSelectedJob] = useState(null);
+      
+      useEffect(() => {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            const response = await fetch(`${API_BASE}/dashboard`);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            const result = await response.json();
+            setData(result);
+            setError(null);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        fetchData();
+        const intervalId = setInterval(fetchData, 30000); // refresh every 30s
+        return () => clearInterval(intervalId);
+      }, []);
+
+      const jobColumns = [
+        { header: "ID", accessor: "job_id", render: row => <code className="mono">{row.job_id}</code> },
+        { header: "Status", accessor: "status", render: row => <StatusPill status={row.status} /> },
+        { header: "Backend", accessor: "backend_name" },
+        { header: "Shots", accessor: "shots", render: row => formatNumber(row.shots) },
+        { header: "Created", accessor: "created_at", render: row => relativeTime(row.created_at) },
+        { header: "Actions", render: row => (
+          <button className="action" onClick={() => setSelectedJob(row)}>View</button>
+        )}
+      ];
+
+      const statusData = {
+        labels: ['Running', 'Queued', 'Done', 'Error', 'Cancelled'],
+        datasets: [
+          {
+            label: 'Jobs by Status',
+            data: data?.job_stats ? [
+              data.job_stats.running_jobs,
+              data.job_stats.queued_jobs,
+              data.job_stats.completed_jobs,
+              data.job_stats.error_jobs,
+              data.job_stats.cancelled_jobs
+            ] : [],
+            backgroundColor: [
+              '#0284c7',  // blue for running
+              '#9333ea',  // purple for queued
+              '#16a34a',  // green for completed
+              '#dc2626',  // red for error
+              '#525252'   // gray for cancelled
+            ]
+          }
+        ]
+      };
+
+      return (
+        <>
+          <h2>Overview</h2>
+          <AsyncData loading={loading} error={error} data={data}>
+            {(dashData) => (
+              <>
+                <div className="grid cols-3">
+                  <Card title="Total Jobs">
+                    <div className="stat">{formatNumber(dashData.job_stats.total_jobs)}</div>
+                    <div className="muted">
+                      Completed: {formatNumber(dashData.job_stats.completed_jobs)} | 
+                      Running: {formatNumber(dashData.job_stats.running_jobs)}
+                    </div>
+                  </Card>
+                  <Card title="Queues">
+                    <div className="stat">{formatNumber(dashData.queue_info.length)}</div>
+                    <div className="muted">Backends with queue records</div>
+                  </Card>
+                  <Card title="Backends">
+                    <div className="stat">{formatNumber(dashData.backend_stats.total_backends)}</div>
+                    <div className="muted">Operational: {formatNumber(dashData.backend_stats.operational_backends)}</div>
+                  </Card>
+                </div>
+
+                <div className="section">
+                  <div className="grid cols-2">
+                    <Card title="Jobs by Status">
+                      <ChartComponent type="pie" data={statusData} />
+                    </Card>
+                    <Card title="Backend Utilization">
+                      <div className="chart-container">
+                        {dashData.backend_utilization && dashData.backend_utilization.weekly_utilization ? (
+                          <ChartComponent 
+                            type="bar" 
+                            data={{
+                              labels: dashData.backend_utilization.weekly_utilization.slice(0, 8).map(b => b.backend),
+                              datasets: [{
+                                label: 'Jobs',
+                                data: dashData.backend_utilization.weekly_utilization.slice(0, 8).map(b => b.job_count),
+                                backgroundColor: '#3b82f6'
+                              }]
+                            }}
+                          />
+                        ) : (
+                          <div className="muted">No utilization data available</div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+
+                <div className="section">
+                  <h3>Recent Jobs</h3>
+                  <Table 
+                    columns={jobColumns} 
+                    data={dashData.recent_jobs || []} 
+                    rowKey="job_id"
+                  />
+                </div>
+              </>
+            )}
+          </AsyncData>
+
+          {selectedJob && (
+            <JobDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} />
+          )}
+        </>
+      );
+    };
+
+    const BackendsTab = () => {
+      const [data, setData] = useState(null);
+      const [backends, setBackends] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      
+      useEffect(() => {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            const [overviewRes, backendsRes] = await Promise.all([
+              fetch(`${API_BASE}/backends/live-metrics`),
+              fetch(`${API_BASE}/backends`)
+            ]);
+            
+            if (!overviewRes.ok) throw new Error(`HTTP error ${overviewRes.status}`);
+            if (!backendsRes.ok) throw new Error(`HTTP error ${backendsRes.status}`);
+            
+            const overviewData = await overviewRes.json();
+            const backendsData = await backendsRes.json();
+            
+            setData(overviewData);
+            setBackends(backendsData);
+            setError(null);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        fetchData();
+        const intervalId = setInterval(fetchData, 30000);
+        return () => clearInterval(intervalId);
+      }, []);
+
+      const backendColumns = [
+        { header: "Name", accessor: "name", render: row => <code className="mono">{row.name}</code> },
+        { header: "Qubits", accessor: "n_qubits", render: row => formatNumber(row.n_qubits) },
+        { header: "Status", accessor: "status" },
+        { header: "Type", accessor: "simulator", render: row => row.simulator ? "Simulator" : "Quantum Device" },
+        { header: "Pending Jobs", accessor: "pending_jobs", render: row => formatNumber(row.pending_jobs) }
+      ];
+
+      // Data for real devices vs simulators chart
+      const deviceTypeData = {
+        labels: ['Real Devices', 'Simulators'],
+        datasets: [
+          {
+            data: data ? [
+              data.real_devices || 0,
+              data.simulators || 0
+            ] : [0, 0],
+            backgroundColor: ['#3b82f6', '#f59e0b']
+          }
+        ]
+      };
+
+      return (
+        <>
+          <h2>Backends</h2>
+          <AsyncData loading={loading} error={error} data={data}>
+            {(backendData) => (
+              <>
+                <div className="grid cols-3">
+                  <Card title="Total Backends">
+                    <div className="stat">{formatNumber(backendData.total_backends)}</div>
+                    <div className="muted">Operational: {formatNumber(backendData.operational_backends)}</div>
+                  </Card>
+                  <Card title="Total Qubits">
+                    <div className="stat">{formatNumber(backendData.total_qubits)}</div>
+                    <div className="muted">
+                      Avg / backend: {formatNumber(backendData.average_qubits?.toFixed ? 
+                        backendData.average_qubits.toFixed(1) : backendData.average_qubits)}
+                    </div>
+                  </Card>
+                  <Card title="Pending Jobs">
+                    <div className="stat">{formatNumber(backendData.total_pending_jobs)}</div>
+                    <div className="muted">With Queues: {formatNumber(backendData.backends_with_queues)}</div>
+                  </Card>
+                </div>
+
+                <div className="section">
+                  <div className="grid cols-2">
+                    <Card title="Backend Types">
+                      <ChartComponent type="pie" data={deviceTypeData} />
+                    </Card>
+                    <Card title="Queue Information">
+                      {backendData.queue_info && backendData.queue_info.length > 0 ? (
+                        <ChartComponent 
+                          type="bar"
+                          data={{
+                            labels: backendData.queue_info.slice(0, 5).map(q => q.backend_name),
+                            datasets: [{
+                              label: 'Queue Length',
+                              data: backendData.queue_info.slice(0, 5).map(q => q.queue_length),
+                              backgroundColor: '#9333ea'
+                            }]
+                          }}
+                        />
+                      ) : (
+                        <div className="muted">No queue information available</div>
+                      )}
+                    </Card>
+                  </div>
+                </div>
+
+                <div className="section">
+                  <h3>Available Backends</h3>
+                  <AsyncData loading={loading} error={error} data={backends}>
+                    {(backendsList) => (
+                      <Table 
+                        columns={backendColumns} 
+                        data={backendsList || []} 
+                        rowKey="name"
+                      />
+                    )}
+                  </AsyncData>
+                </div>
+              </>
+            )}
+          </AsyncData>
+        </>
+      );
+    };
+
+    const JobsTab = () => {
+      const [jobsPage, setJobsPage] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [filters, setFilters] = useState({
+        status: '',
+        backend: '',
+        search: ''
+      });
+      const [page, setPage] = useState(1);
+      const [selectedJob, setSelectedJob] = useState(null);
+      
+      const fetchJobs = useCallback(async (pageNum = 1) => {
+        try {
+          setLoading(true);
+          
+          const queryParams = new URLSearchParams();
+          if (filters.status) queryParams.append('status', filters.status);
+          if (filters.backend) queryParams.append('backend', filters.backend);
+          queryParams.append('page', pageNum);
+          queryParams.append('per_page', 25);
+          
+          const response = await fetch(`${API_BASE}/jobs?${queryParams.toString()}`);
+          
+          if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+          
+          const result = await response.json();
+          setJobsPage(result);
+          setError(null);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      }, [filters]);
+      
+      useEffect(() => {
+        fetchJobs(page);
+      }, [fetchJobs, page]);
+
+      const handleFilterChange = (key, value) => {
+        setFilters(prev => ({
+          ...prev,
+          [key]: value
+        }));
+        setPage(1); // Reset to first page when filters change
+      };
+      
+      const debouncedFetchJobs = useCallback(debounce(() => fetchJobs(1), 500), [fetchJobs]);
+
+      useEffect(() => {
+        debouncedFetchJobs();
+      }, [filters, debouncedFetchJobs]);
+
+      const jobColumns = [
+        { header: "ID", accessor: "job_id", render: row => <code className="mono">{row.job_id}</code> },
+        { header: "Status", accessor: "status", render: row => <StatusPill status={row.status} /> },
+        { header: "Backend", accessor: "backend_name" },
+        { header: "Shots", accessor: "shots", render: row => formatNumber(row.shots) },
+        { header: "Queue Time", accessor: "queue_time", render: row => row.queue_time ? `${row.queue_time}s` : '—' },
+        { header: "Run Time", accessor: "run_time", render: row => row.run_time ? `${row.run_time}s` : '—' },
+        { header: "Created", accessor: "created_at", render: row => relativeTime(row.created_at) },
+        { header: "Actions", render: row => (
+          <button className="action" onClick={() => setSelectedJob(row)}>View</button>
+        )}
+      ];
+
+      return (
+        <>
+          <h2>Jobs</h2>
+          
+          <div className="toolbar">
+            <select 
+              value={filters.status} 
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              {['RUNNING', 'QUEUED', 'DONE', 'ERROR', 'CANCELLED'].map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            
+            <input 
+              placeholder="Backend filter" 
+              value={filters.backend}
+              onChange={(e) => handleFilterChange('backend', e.target.value)}
+            />
+            
+            <button className="action" onClick={() => fetchJobs(1)} disabled={loading}>
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+          
+          <AsyncData loading={loading} error={error} data={jobsPage}>
+            {(pageData) => (
+              <>
+                <Table 
+                  columns={jobColumns} 
+                  data={pageData.items || []} 
+                  rowKey="job_id"
+                />
+                
+                <div className="toolbar">
+                  <span className="muted">Page {pageData.page} of {pageData.total_pages}</span>
+                  <div className="flex">
+                    <button 
+                      className="action" 
+                      disabled={pageData.page <= 1}
+                      onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                    >
+                      Previous
+                    </button>
+                    <button 
+                      className="action" 
+                      disabled={pageData.page >= pageData.total_pages}
+                      onClick={() => setPage(prev => Math.min(pageData.total_pages, prev + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </AsyncData>
+          
+          {selectedJob && (
+            <JobDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} />
+          )}
+        </>
+      );
+    };
+
+    const QueueTab = () => {
+      const [queueData, setQueueData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [sortBy, setSortBy] = useState('none');
+      
+      useEffect(() => {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            const response = await fetch(`${API_BASE}/queue`);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            
+            const result = await response.json();
+            setQueueData(result);
+            setError(null);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        fetchData();
+        const intervalId = setInterval(fetchData, 30000);
+        return () => clearInterval(intervalId);
+      }, []);
+      
+      const sortedQueueData = queueData ? [...queueData].sort((a, b) => {
+        if (sortBy === 'wait_asc') return (a.estimated_wait_time || 0) - (b.estimated_wait_time || 0);
+        if (sortBy === 'wait_desc') return (b.estimated_wait_time || 0) - (a.estimated_wait_time || 0);
+        if (sortBy === 'queue_asc') return (a.queue_length || 0) - (b.queue_length || 0);
+        if (sortBy === 'queue_desc') return (b.queue_length || 0) - (a.queue_length || 0);
+        return 0;
+      }) : null;
+
+      const queueColumns = [
+        { header: "Backend", accessor: "backend_name", render: row => <code className="mono">{row.backend_name}</code> },
+        { header: "Queue", accessor: "queue_length", render: row => formatNumber(row.queue_length) },
+        { header: "Pending", accessor: "pending_jobs", render: row => formatNumber(row.pending_jobs) },
+        { header: "Running", accessor: "running_jobs", render: row => formatNumber(row.running_jobs) },
+        { header: "Avg Wait (s)", accessor: "average_wait_time", render: row => formatNumber(row.average_wait_time) },
+        { header: "Est Wait (s)", accessor: "estimated_wait_time", render: row => formatNumber(row.estimated_wait_time) },
+        { header: "Status", accessor: "status" }
+      ];
+
+      // Data for wait time visualization
+      const waitTimeData = {
+        labels: sortedQueueData?.slice(0, 8).map(q => q.backend_name) || [],
+        datasets: [
+          {
+            label: 'Est. Wait Time (s)',
+            data: sortedQueueData?.slice(0, 8).map(q => q.estimated_wait_time || 0) || [],
+            backgroundColor: '#f59e0b'
+          }
+        ]
+      };
+
+      return (
+        <>
+          <h2>Queue</h2>
+          
+          <div className="toolbar">
+            <select 
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="none">Sort by...</option>
+              <option value="wait_asc">Wait Time (Lowest First)</option>
+              <option value="wait_desc">Wait Time (Highest First)</option>
+              <option value="queue_asc">Queue Length (Lowest First)</option>
+              <option value="queue_desc">Queue Length (Highest First)</option>
+            </select>
+            
+            <button 
+              className="action" 
+              onClick={() => setLoading(true)}
+            >
+              Refresh
+            </button>
+          </div>
+          
+          <AsyncData loading={loading} error={error} data={sortedQueueData}>
+            {(queueList) => (
+              <>
+                <div className="grid cols-2">
+                  <Card title="Queue Length by Backend">
+                    <ChartComponent
+                      type="bar"
+                      data={{
+                        labels: queueList.slice(0, 8).map(q => q.backend_name),
+                        datasets: [{
+                          label: 'Queue Length',
+                          data: queueList.slice(0, 8).map(q => q.queue_length || 0),
+                          backgroundColor: '#9333ea'
+                        }]
+                      }}
+                    />
+                  </Card>
+                  <Card title="Estimated Wait Times">
+                    <ChartComponent
+                      type="bar"
+                      data={waitTimeData}
+                    />
+                  </Card>
+                </div>
+
+                <div className="section">
+                  <h3>Queue Details</h3>
+                  <Table 
+                    columns={queueColumns} 
+                    data={queueList} 
+                    rowKey="backend_name"
+                  />
+                </div>
+              </>
+            )}
+          </AsyncData>
+        </>
+      );
+    };
+
+    const AnalyticsTab = () => {
+      const [analyticsData, setAnalyticsData] = useState({});
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      
+      useEffect(() => {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            
+            const endpoints = [
+              'job-trends',
+              'backend-utilization',
+              'status-distribution',
+              'performance-metrics',
+              'backend-comparison'
+            ];
+            
+            const results = await Promise.all(
+              endpoints.map(endpoint => 
+                fetch(`${API_BASE}/analytics/${endpoint}`)
+                  .then(res => {
+                    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                    return res.json();
+                  })
+              )
+            );
+            
+            setAnalyticsData({
+              trends: results[0],
+              utilization: results[1],
+              statusDist: results[2],
+              performance: results[3],
+              backendComp: results[4]
+            });
+            
+            setError(null);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        fetchData();
+        const intervalId = setInterval(fetchData, 60000); // Refresh every minute
+        return () => clearInterval(intervalId);
+      }, []);
+
+      const backendCompColumns = [
+        { header: "Name", accessor: "name", render: row => <code className="mono">{row.name}</code> },
+        { header: "Qubits", accessor: "n_qubits", render: row => formatNumber(row.n_qubits) },
+        { header: "Status", accessor: "status" },
+        { header: "Type", accessor: "simulator", render: row => row.simulator ? "Simulator" : "Quantum" },
+        { header: "Jobs", accessor: "job_count", render: row => formatNumber(row.job_count) },
+        { header: "Total Shots", accessor: "total_shots", render: row => formatNumber(row.total_shots) },
+        { header: "Pending", accessor: "pending_jobs", render: row => formatNumber(row.pending_jobs) },
+        { header: "Est Wait (s)", accessor: "estimated_wait_time", render: row => formatNumber(row.estimated_wait_time) }
+      ];
+
+      const statusDistData = {
+        labels: analyticsData?.statusDist?.distribution?.map(d => d.status) || [],
+        datasets: [
+          {
+            label: 'Count',
+            data: analyticsData?.statusDist?.distribution?.map(d => d.count) || [],
+            backgroundColor: [
+              '#0284c7',  // blue for running
+              '#9333ea',  // purple for queued
+              '#16a34a',  // green for completed
+              '#dc2626',  // red for error
+              '#525252'   // gray for cancelled
+            ]
+          }
+        ]
+      };
+
+      return (
+        <>
+          <h2>Analytics</h2>
+          
+          <AsyncData loading={loading} error={error} data={analyticsData.performance}>
+            {(performance) => (
+              <div className="grid cols-4">
+                <Card title="Success Rate">
+                  <div className="stat">{formatNumber(performance.success_rate)}<span className="muted">%</span></div>
+                </Card>
+                <Card title="System Availability">
+                  <div className="stat">{formatNumber(performance.system_availability)}<span className="muted">%</span></div>
+                </Card>
+                <Card title="Avg Queue Time">
+                  <div className="stat">{formatNumber(performance.average_queue_time)}<span className="muted">s</span></div>
+                </Card>
+                <Card title="Avg Execution Time">
+                  <div className="stat">{formatNumber(performance.average_execution_time)}<span className="muted">s</span></div>
+                </Card>
+              </div>
+            )}
+          </AsyncData>
+          
+          <div className="section">
+            <h3>Status Distribution</h3>
+            <AsyncData loading={loading} error={error} data={analyticsData.statusDist}>
+              {(statusData) => (
+                <div className="grid cols-2">
+                  <Card title="Job Status Distribution">
+                    <ChartComponent
+                      type="pie"
+                      data={statusDistData}
+                    />
+                  </Card>
+                  <Card title="Status Breakdown">
+                    <div className="chips">
+                      {statusData.distribution && statusData.distribution.map((d, i) => (
+                        <div key={i} className="chip">
+                          {d.status}: {d.count} ({d.percentage.toFixed(1)}%)
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </AsyncData>
+          </div>
+          
+          <div className="section">
+            <h3>Backend Comparison</h3>
+            <AsyncData loading={loading} error={error} data={analyticsData.backendComp}>
+              {(backendData) => (
+                <Table 
+                  columns={backendCompColumns}
+                  data={(backendData.backends || []).slice(0, 25)}
+                  rowKey="name"
+                />
+              )}
+            </AsyncData>
+          </div>
+        </>
+      );
+    };
+
+    // Main App Component
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('overview');
+      
+      const tabs = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'backends', label: 'Backends' },
+        { id: 'jobs', label: 'Jobs' },
+        { id: 'queue', label: 'Queue' },
+        { id: 'analytics', label: 'Analytics' }
+      ];
+      
+      const renderContent = () => {
+        switch (activeTab) {
+          case 'overview': return <OverviewTab />;
+          case 'backends': return <BackendsTab />;
+          case 'jobs': return <JobsTab />;
+          case 'queue': return <QueueTab />;
+          case 'analytics': return <AnalyticsTab />;
+          default: return <div>Unknown tab</div>;
+        }
+      };
+
+      return (
+        <div className="layout">
+          <aside className="sidebar">
+            <h1>Quantum Dashboard</h1>
+            <nav className="nav">
+              {tabs.map(tab => (
+                <button 
+                  key={tab.id}
+                  className={activeTab === tab.id ? 'active' : ''}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </aside>
+          <main className="content">
+            {renderContent()}
+          </main>
+        </div>
+      );
+    };
+
+    // Render the app
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+66 files changed
+Keep
+Undo
+serve_frontend.py
+.env
+.env.example
+__init__.pyapp
+__init__.pyapp/api
+analytics.pyapp/api
+Add Context...
+react-dashboard.html

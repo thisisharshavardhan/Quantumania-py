@@ -1,0 +1,125 @@
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, JSON
+from sqlalchemy.sql import func
+from app.core.database import Base
+
+class QuantumJob(Base):
+    __tablename__ = "quantum_jobs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, index=True)
+    backend_name = Column(String, index=True)
+    backend_version = Column(String)
+    backend_status = Column(String)
+    backend_basis_gates = Column(JSON)
+    backend_coupling_map = Column(JSON)
+    backend_n_qubits = Column(Integer)
+    status = Column(String, index=True)
+    creation_date = Column(DateTime(timezone=True))
+    tags = Column(JSON)
+    user_id = Column(String, index=True)
+    program_id = Column(String)
+    hub = Column(String)
+    group = Column(String)
+    project = Column(String)
+    cost = Column(Float)
+    usage = Column(JSON)
+    error_message = Column(Text)
+    queue_position = Column(Integer)
+    estimated_start_time = Column(DateTime(timezone=True))
+    estimated_completion_time = Column(DateTime(timezone=True))
+    start_time = Column(DateTime(timezone=True))
+    end_time = Column(DateTime(timezone=True))
+    shots = Column(Integer)
+    circuits = Column(Integer)
+    transpiled_circuits = Column(JSON)
+    qobj = Column(JSON)
+    result = Column(JSON)
+    properties = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class QuantumBackend(Base):
+    __tablename__ = "quantum_backends"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    backend_version = Column(String)
+    backend_type = Column(String)
+    status = Column(String)
+    max_shots = Column(Integer)
+    max_experiments = Column(Integer)
+    n_qubits = Column(Integer)
+    pending_jobs = Column(Integer, default=0)  # Live queue data from IBM
+    basis_gates = Column(JSON)
+    coupling_map = Column(JSON)
+    supported_instructions = Column(JSON)
+    local = Column(Boolean, default=False)
+    simulator = Column(Boolean, default=False)
+    conditional = Column(Boolean, default=False)
+    open_pulse = Column(Boolean, default=False)
+    memory = Column(Boolean, default=False)
+    credits_required = Column(Boolean, default=True)
+    description = Column(Text)
+    online_date = Column(DateTime(timezone=True))
+    dt = Column(Float)
+    dtm = Column(Float)
+    processor_type = Column(JSON)
+    parametric_pulses = Column(JSON)
+    default_rep_delay = Column(Float)
+    max_rep_delay = Column(Float)
+    rep_delay_range = Column(JSON)
+    default_meas_level = Column(Integer)
+    meas_levels = Column(JSON)
+    qubit_lo_range = Column(JSON)
+    meas_lo_range = Column(JSON)
+    acquisition_latency = Column(JSON)
+    conditional_latency = Column(JSON)
+    meas_kernels = Column(JSON)
+    discriminators = Column(JSON)
+    hamiltonian = Column(JSON)
+    channel_bandwidth = Column(JSON)
+    acquisition_channel_bandwidth = Column(JSON)
+    pulse_library = Column(JSON)
+    pulse_gates = Column(JSON)
+    gates = Column(JSON)
+    timing_constraints = Column(JSON)
+    instruction_durations = Column(JSON)
+    instruction_schedule_map = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class JobQueue(Base):
+    __tablename__ = "job_queues"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    backend_name = Column(String, index=True, nullable=False)
+    queue_length = Column(Integer, default=0)
+    pending_jobs = Column(Integer, default=0)
+    running_jobs = Column(Integer, default=0)
+    average_wait_time = Column(Float)
+    estimated_wait_time = Column(Float)
+    status = Column(String)
+    last_updated = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SystemStatus(Base):
+    __tablename__ = "system_status"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    service_name = Column(String, index=True, nullable=False)
+    status = Column(String)
+    message = Column(Text)
+    response_time = Column(Float)
+    last_check = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(String, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_accessed = Column(DateTime(timezone=True), server_default=func.now())
+    is_active = Column(Boolean, default=True)
