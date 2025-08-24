@@ -207,49 +207,113 @@ export default function DemoApp(){
       </div>
     </header>
   <main className="flex-1 overflow-y-auto p-6 space-y-8 compact-gap">
-      {/* Overview */}
-      <section className="space-y-6" id="overview">
-  <h2 className="text-xl font-semibold tracking-tight text-foreground">Overview</h2>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-          <Card><Stat label="Total Jobs" value={data.jobStats.total_jobs} note={`Running ${data.jobStats.running_jobs} / Queued ${data.jobStats.queued_jobs}`} /></Card>
-          <Card><Stat label="Completed" value={data.jobStats.completed_jobs} note={`Errors ${data.jobStats.error_jobs}`} /></Card>
-          <Card><Stat label="Avg Queue (s)" value={data.jobStats.average_queue_time} note={`Exec ${data.jobStats.average_execution_time}s`} /></Card>
-          <Card><Stat label="Op Backends" value={data.backendStats.operational_backends} note={`${data.backendStats.total_backends} total`} /></Card>
+      {/* All Stats Section */}
+      <section className="space-y-6" id="all-stats">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">📊 System Overview</h2>
+        
+        {/* Job Stats */}
+        <div>
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground mb-3">Job Statistics</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+            <Card><Stat label="Total Jobs" value={data.jobStats.total_jobs} note={`Running ${data.jobStats.running_jobs} / Queued ${data.jobStats.queued_jobs}`} /></Card>
+            <Card><Stat label="Completed" value={data.jobStats.completed_jobs} note={`Errors ${data.jobStats.error_jobs}`} /></Card>
+            <Card><Stat label="Avg Queue (s)" value={data.jobStats.average_queue_time} note={`Exec ${data.jobStats.average_execution_time}s`} /></Card>
+            <Card><Stat label="Op Backends" value={data.backendStats.operational_backends} note={`${data.backendStats.total_backends} total`} /></Card>
+          </div>
         </div>
-  <div className="space-y-3 compact-table">
-          <h3 className="text-sm font-semibold tracking-wide">Recent Jobs</h3>
-          <Table keyField="job_id" rows={data.recent_jobs} columns={[
-            { key:'job_id', header:'ID', render: r=> <code className="text-[11px] font-mono">{r.job_id}</code> },
-            { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
-            { key:'backend_name', header:'Backend' },
-            { key:'shots', header:'Shots' },
-            { key:'created_at', header:'Created', render: r=> timeAgo(r.created_at) },
-          ]} />
+
+        {/* Backend Stats */}
+        <div>
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground mb-3">Backend Statistics</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+            <Card><Stat label="Total" value={data.backendStats.total_backends} note={`Sim ${data.backendStats.simulators} / Real ${data.backendStats.real_devices}`} /></Card>
+            <Card><Stat label="Qubits" value={data.backendStats.total_qubits} note={`Avg Queue ${data.backendStats.average_queue_length?.toFixed?.(1)}`}/></Card>
+            <Card><Stat label="Maint" value={data.backendStats.maintenance_backends} note={`Offline ${data.backendStats.offline_backends}`} /></Card>
+            <Card><Stat label="Throughput/day" value={data.performance.throughput.jobs_per_day} note={`per hour ${data.performance.throughput.jobs_per_hour}`} /></Card>
+          </div>
         </div>
-      </section>
-      {/* System Status */}
-      <section className="space-y-6" id="system-status">
-  <h2 className="text-xl font-semibold tracking-tight text-foreground">System Status</h2>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-          {data.system_status.map(s=> <Card key={s.service_name} title={s.service_name}>
-            <div className="flex items-center justify-between">
-              <Pill tone={s.status==='healthy'?'ok':s.status==='degraded'?'warn':'err'}>{s.status}</Pill>
-              <span className="text-[10px] text-muted-foreground">{(s.response_time*1000).toFixed(0)} ms</span>
+
+        {/* Performance Analytics */}
+        <div>
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground mb-3">Performance Analytics</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-5">
+            <Card><Stat label="Success %" value={data.performance.success_rate} note={`Avail ${data.performance.system_availability}%`} /></Card>
+            <Card><Stat label="Avg Queue" value={data.performance.average_queue_time} note="seconds" /></Card>
+            <Card><Stat label="Avg Exec" value={data.performance.average_execution_time} note="seconds" /></Card>
+            <Card><Stat label="Quantum Time" value={data.performance.total_quantum_time} note="accumulated" /></Card>
+            <Card><Stat label="Jobs/hr" value={data.performance.throughput.jobs_per_hour} note="throughput" /></Card>
+          </div>
+        </div>
+
+        {/* System Status */}
+        <div>
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground mb-3">System Status</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+            {data.system_status.map(s=> <Card key={s.service_name} title={s.service_name}>
+              <div className="flex items-center justify-between">
+                <Pill tone={s.status==='healthy'?'ok':s.status==='degraded'?'warn':'err'}>{s.status}</Pill>
+                <span className="text-[10px] text-muted-foreground">{(s.response_time*1000).toFixed(0)} ms</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">Updated {timeAgo(s.last_check)}</span>
+            </Card>)}
+          </div>
+        </div>
+
+        {/* Status Distribution */}
+        <div>
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground mb-3">Job Status Distribution</h3>
+          <Card>
+            <div className="flex flex-wrap gap-2">
+              {data.status_distribution.map(d=> <Pill key={d.status}>{d.status}: {d.count} ({d.percentage.toFixed(1)}%)</Pill>)}
             </div>
-            <span className="text-[10px] text-muted-foreground">Updated {timeAgo(s.last_check)}</span>
-          </Card>)}
+          </Card>
         </div>
       </section>
-      {/* Backends */}
-      <section className="space-y-6" id="backends">
-  <h2 className="text-xl font-semibold tracking-tight text-foreground">Backends & Utilization</h2>
-  <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-          <Card><Stat label="Total" value={data.backendStats.total_backends} note={`Sim ${data.backendStats.simulators} / Real ${data.backendStats.real_devices}`} /></Card>
-          <Card><Stat label="Qubits" value={data.backendStats.total_qubits} note={`Avg Queue ${data.backendStats.average_queue_length?.toFixed?.(1)}`}/></Card>
-          <Card><Stat label="Maint" value={data.backendStats.maintenance_backends} note={`Offline ${data.backendStats.offline_backends}`} /></Card>
-          <Card><Stat label="Throughput/day" value={data.performance.throughput.jobs_per_day} note={`per hour ${data.performance.throughput.jobs_per_hour}`} /></Card>
+
+      {/* All Tables Section */}
+      <section className="space-y-8" id="all-tables">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">📋 Data Tables</h2>
+        
+        {/* Recent Jobs Table */}
+        <div className="space-y-3 compact-table">
+          <h3 className="text-sm font-semibold tracking-wide">Recent Jobs</h3>
+          <div className="table-wrapper">
+            <Table keyField="job_id" rows={data.recent_jobs} columns={[
+              { key:'job_id', header:'ID', render: r=> <code className="text-[11px] font-mono">{r.job_id}</code> },
+              { key:'status', header:'Status', render: r=> <Pill tone={r.status==='DONE'?'ok':r.status==='ERROR'?'err':r.status==='RUNNING'?'warn':'default'}>{r.status}</Pill> },
+              { key:'backend_name', header:'Backend' },
+              { key:'shots', header:'Shots' },
+              { key:'created_at', header:'Created', render: r=> timeAgo(r.created_at) },
+            ]} />
+          </div>
         </div>
-  <Card title="Weekly Utilization (jobs / shots)" className="compact-table">
+
+        {/* Queue Table */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold tracking-wide">Queue Status</h3>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+            <span>Page {queuePageSafe}/{queueTotalPages}</span>
+            <div className="flex gap-1">
+              <button disabled={queuePageSafe<=1} onClick={()=>setQueuePage(p=>Math.max(1,p-1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Prev</button>
+              <button disabled={queuePageSafe>=queueTotalPages} onClick={()=>setQueuePage(p=>Math.min(queueTotalPages,p+1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Next</button>
+            </div>
+          </div>
+          <div className="table-wrapper">
+            <Table keyField="backend_name" rows={queueSlice} columns={[
+              { key:'backend_name', header:'Backend', render: r=> <code className="text-[11px] font-mono">{r.backend_name}</code> },
+              { key:'queue_length', header: sortableHeader('Queue','queue_length',queueSort,setQueueSort) },
+              { key:'pending_jobs', header: sortableHeader('Pending','pending_jobs',queueSort,setQueueSort) },
+              { key:'running_jobs', header: sortableHeader('Running','running_jobs',queueSort,setQueueSort) },
+              { key:'average_wait_time', header: sortableHeader('Avg Wait','average_wait_time',queueSort,setQueueSort), render: r=> <span className="tabular-nums text-muted-foreground">{r.average_wait_time}s</span> },
+              { key:'estimated_wait_time', header: sortableHeader('Est Wait','estimated_wait_time',queueSort,setQueueSort), render: r=> <span className="tabular-nums font-medium text-amber-400">{r.estimated_wait_time}s</span> },
+              { key:'status', header:'Status', render: r=> <Pill tone={r.status==='operational'?'ok':r.status==='maintenance'?'warn':'err'}>{r.status}</Pill> },
+            ]} />
+          </div>
+        </div>
+
+        {/* Backend Utilization Table */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold tracking-wide">Weekly Utilization (jobs / shots)</h3>
           <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
             <span>Page {backendPageSafe}/{backendTotalPages}</span>
             <div className="flex gap-1">
@@ -257,60 +321,30 @@ export default function DemoApp(){
               <button disabled={backendPageSafe>=backendTotalPages} onClick={()=>setBackendPage(p=>Math.min(backendTotalPages,p+1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Next</button>
             </div>
           </div>
-          <Table keyField="backend" rows={backendSlice} columns={[
-            { key:'backend', header: sortableHeader('Backend','backend',backendSort,setBackendSort), render: r=> <code className="text-[11px] font-mono">{r.backend}</code> },
-            { key:'job_count', header: sortableHeader('Jobs','job_count',backendSort,setBackendSort) },
-            { key:'total_shots', header: sortableHeader('Shots','total_shots',backendSort,setBackendSort) },
-          ]} />
-        </Card>
-      </section>
-      {/* Queue */}
-      <section className="space-y-6" id="queue">
-  <h2 className="text-xl font-semibold tracking-tight text-foreground">Queue</h2>
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-          <span>Page {queuePageSafe}/{queueTotalPages}</span>
-          <div className="flex gap-1">
-            <button disabled={queuePageSafe<=1} onClick={()=>setQueuePage(p=>Math.max(1,p-1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Prev</button>
-            <button disabled={queuePageSafe>=queueTotalPages} onClick={()=>setQueuePage(p=>Math.min(queueTotalPages,p+1))} className="px-2 py-0.5 rounded bg-muted/50 disabled:opacity-30">Next</button>
+          <div className="table-wrapper">
+            <Table keyField="backend" rows={backendSlice} columns={[
+              { key:'backend', header: sortableHeader('Backend','backend',backendSort,setBackendSort), render: r=> <code className="text-[11px] font-mono">{r.backend}</code> },
+              { key:'job_count', header: sortableHeader('Jobs','job_count',backendSort,setBackendSort) },
+              { key:'total_shots', header: sortableHeader('Shots','total_shots',backendSort,setBackendSort) },
+            ]} />
           </div>
         </div>
-  <Table keyField="backend_name" rows={queueSlice} columns={[
-          { key:'backend_name', header:'Backend', render: r=> <code className="text-[11px] font-mono">{r.backend_name}</code> },
-          { key:'queue_length', header: sortableHeader('Queue','queue_length',queueSort,setQueueSort) },
-          { key:'pending_jobs', header: sortableHeader('Pending','pending_jobs',queueSort,setQueueSort) },
-          { key:'running_jobs', header: sortableHeader('Running','running_jobs',queueSort,setQueueSort) },
-          { key:'average_wait_time', header: sortableHeader('Avg Wait','average_wait_time',queueSort,setQueueSort) },
-          { key:'estimated_wait_time', header: sortableHeader('Est Wait','estimated_wait_time',queueSort,setQueueSort) },
-          { key:'status', header:'Status' },
-        ]} />
-      </section>
-      {/* Analytics */}
-      <section className="space-y-6" id="analytics">
-  <h2 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h2>
-  <div className="grid gap-4 grid-cols-1 md:grid-cols-5">
-          <Card><Stat label="Success %" value={data.performance.success_rate} note={`Avail ${data.performance.system_availability}%`} /></Card>
-          <Card><Stat label="Avg Queue" value={data.performance.average_queue_time} note="seconds" /></Card>
-          <Card><Stat label="Avg Exec" value={data.performance.average_execution_time} note="seconds" /></Card>
-          <Card><Stat label="Quantum Time" value={data.performance.total_quantum_time} note="accumulated" /></Card>
-          <Card><Stat label="Jobs/hr" value={data.performance.throughput.jobs_per_hour} note="throughput" /></Card>
-        </div>
-        <Card title="Status Distribution">
-          <div className="flex flex-wrap gap-2">
-            {data.status_distribution.map(d=> <Pill key={d.status}>{d.status}: {d.count} ({d.percentage.toFixed(1)}%)</Pill>)}
-          </div>
-        </Card>
+
+        {/* Backend Comparison Table */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold tracking-wide">Backend Comparison</h3>
-          <Table keyField="name" rows={data.backend_comparison} columns={[
-            { key:'name', header:'Name', render: r=> <code className="text-[11px] font-mono">{r.name}</code> },
-            { key:'n_qubits', header:'Qubits' },
-            { key:'status', header:'Status' },
-            { key:'simulator', header:'Type', render: r=> r.simulator?'Sim':'Real' },
-            { key:'job_count', header:'Jobs' },
-            { key:'total_shots', header:'Shots' },
-            { key:'pending_jobs', header:'Pending' },
-            { key:'estimated_wait_time', header:'Est Wait' },
-          ]} />
+          <div className="table-wrapper">
+            <Table keyField="name" rows={data.backend_comparison} columns={[
+              { key:'name', header:'Name', render: r=> <code className="text-[11px] font-mono">{r.name}</code> },
+              { key:'n_qubits', header:'Qubits' },
+              { key:'status', header:'Status', render: r=> <Pill tone={r.status==='operational'?'ok':r.status==='maintenance'?'warn':'err'}>{r.status}</Pill> },
+              { key:'simulator', header:'Type', render: r=> r.simulator?'Sim':'Real' },
+              { key:'job_count', header:'Jobs' },
+              { key:'total_shots', header:'Shots' },
+              { key:'pending_jobs', header:'Pending' },
+              { key:'estimated_wait_time', header:'Est Wait', render: r=> <span className="tabular-nums font-medium text-amber-400">{r.estimated_wait_time}s</span> },
+            ]} />
+          </div>
         </div>
       </section>
     </main>

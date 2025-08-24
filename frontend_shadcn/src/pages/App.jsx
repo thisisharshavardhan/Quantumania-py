@@ -100,7 +100,7 @@ export default function App(){
   const [statusDist, setStatusDist] = useState(null)
   const [backendComp, setBackendComp] = useState(null)
   const [myJobCount,setMyJobCount] = useState(null)
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   // Lists UX
   const [backendSort,setBackendSort] = useState({key:'name',dir:'asc'})
@@ -112,10 +112,10 @@ export default function App(){
   const [globalSearch, setGlobalSearch] = useState('')
   const [openSections, setOpenSections] = useState({
     overview: true,
+    analytics: true,
     jobs: true,
-  backends: true,
+    backends: true,
     queue: false,
-    analytics: false,
   })
   // Removed tabbed view state (reverting to separate sections)
   // unified theme: no selection needed
@@ -273,6 +273,51 @@ export default function App(){
         </>}
       </section>}
 
+      {/* Analytics Section */}
+      {openSections.analytics && <section id="analytics" className="space-y-6">
+        <div className="section-header">
+          <h2 className="section-title">📈 Analytics & Insights</h2>
+          <button onClick={()=>toggleSection('analytics')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
+        </div>
+        {perf && <div className="space-y-6">
+          <div>
+            <div className="subsection-title">⚡ Performance Metrics</div>
+            <div className="grid-auto-fit">
+              <Card><Stat label="Success Rate" value={`${perf.success_rate}%`} note={`🟢 ${perf.system_availability}% system availability`} /></Card>
+              <Card><Stat label="Avg Queue Time" value={`${perf.average_queue_time}s`} note="⏱️ time in queue" /></Card>
+              <Card><Stat label="Avg Execution" value={`${perf.average_execution_time}s`} note="⚡ processing time" /></Card>
+              <Card><Stat label="Quantum Time" value={perf.total_quantum_time} note="🔬 total accumulated" /></Card>
+            </div>
+          </div>
+        </div>}
+        {statusDist && <Card title="📊 Job Status Distribution" className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {statusDist.distribution?.map(d=> <div key={d.status} className="pill-soft flex items-center gap-2">
+              <span>{d.status}</span>
+              <span className="font-bold">{d.count}</span>
+              <span className="text-muted-foreground">({d.percentage.toFixed(1)}%)</span>
+            </div>)}
+          </div>
+        </Card>}
+        {filteredComp && <div className="space-y-4">
+          <div className="subsection-title">🔍 Backend Comparison</div>
+          <div className="table-wrapper">
+            <div className="compact-table">
+              <Table keyField="name" rows={filteredComp.backends?.slice(0,50) || []} columns={[
+                { key:'name', header:'Backend', render: r=> <code className="text-[11px] font-mono text-primary">{r.name}</code> },
+                { key:'n_qubits', header:'Qubits', render: r=> <span className="font-bold tabular-nums">{r.n_qubits}</span> },
+                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='available'?'ok':'default'}>{r.status}</Pill> },
+                { key:'simulator', header:'Type', render: r=> <span className={`pill-soft ${r.simulator?'text-info':'text-warning'}`}>{r.simulator?'🖥️ Sim':'⚛️ Real'}</span> },
+                { key:'job_count', header:'Jobs', render: r=> <span className="tabular-nums">{r.job_count}</span> },
+                { key:'total_shots', header:'Total Shots', render: r=> <span className="tabular-nums">{r.total_shots?.toLocaleString()}</span> },
+                { key:'pending_jobs', header:'Queue', render: r=> <span className="tabular-nums">{r.pending_jobs}</span> },
+                { key:'estimated_wait_time', header:'Est Wait', render: r=> <span className="tabular-nums text-muted-foreground">{r.estimated_wait_time}s</span> },
+              ]} />
+            </div>
+          </div>
+        </div>}
+      </section>}
+
       {/* Backends Section */}
       {openSections.backends && <section id="backends" className="space-y-6">
         <div className="section-header">
@@ -384,51 +429,6 @@ export default function App(){
             </div>
           </div>
         </div>
-      </section>}
-
-      {/* Analytics Section */}
-      {openSections.analytics && <section id="analytics" className="space-y-6">
-        <div className="section-header">
-          <h2 className="section-title">📈 Analytics & Insights</h2>
-          <button onClick={()=>toggleSection('analytics')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Collapse</button>
-        </div>
-        {perf && <div className="space-y-6">
-          <div>
-            <div className="subsection-title">⚡ Performance Metrics</div>
-            <div className="grid-auto-fit">
-              <Card><Stat label="Success Rate" value={`${perf.success_rate}%`} note={`🟢 ${perf.system_availability}% system availability`} /></Card>
-              <Card><Stat label="Avg Queue Time" value={`${perf.average_queue_time}s`} note="⏱️ time in queue" /></Card>
-              <Card><Stat label="Avg Execution" value={`${perf.average_execution_time}s`} note="⚡ processing time" /></Card>
-              <Card><Stat label="Quantum Time" value={perf.total_quantum_time} note="🔬 total accumulated" /></Card>
-            </div>
-          </div>
-        </div>}
-        {statusDist && <Card title="📊 Job Status Distribution" className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {statusDist.distribution?.map(d=> <div key={d.status} className="pill-soft flex items-center gap-2">
-              <span>{d.status}</span>
-              <span className="font-bold">{d.count}</span>
-              <span className="text-muted-foreground">({d.percentage.toFixed(1)}%)</span>
-            </div>)}
-          </div>
-        </Card>}
-        {filteredComp && <div className="space-y-4">
-          <div className="subsection-title">🔍 Backend Comparison</div>
-          <div className="table-wrapper">
-            <div className="compact-table">
-              <Table keyField="name" rows={filteredComp.backends?.slice(0,50) || []} columns={[
-                { key:'name', header:'Backend', render: r=> <code className="text-[11px] font-mono text-primary">{r.name}</code> },
-                { key:'n_qubits', header:'Qubits', render: r=> <span className="font-bold tabular-nums">{r.n_qubits}</span> },
-                { key:'status', header:'Status', render: r=> <Pill tone={r.status==='available'?'ok':'default'}>{r.status}</Pill> },
-                { key:'simulator', header:'Type', render: r=> <span className={`pill-soft ${r.simulator?'text-info':'text-warning'}`}>{r.simulator?'🖥️ Sim':'⚛️ Real'}</span> },
-                { key:'job_count', header:'Jobs', render: r=> <span className="tabular-nums">{r.job_count}</span> },
-                { key:'total_shots', header:'Total Shots', render: r=> <span className="tabular-nums">{r.total_shots?.toLocaleString()}</span> },
-                { key:'pending_jobs', header:'Queue', render: r=> <span className="tabular-nums">{r.pending_jobs}</span> },
-                { key:'estimated_wait_time', header:'Est Wait', render: r=> <span className="tabular-nums text-muted-foreground">{r.estimated_wait_time}s</span> },
-              ]} />
-            </div>
-          </div>
-        </div>}
       </section>}
     </main>
     <footer className="glass-subtle px-6 py-3 text-xs text-muted-foreground flex items-center justify-between">
